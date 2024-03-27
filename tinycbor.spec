@@ -69,7 +69,9 @@ LDFLAGS="%{rpmldflags}" \
 	%{!?with_static_libs:BUILD_STATIC=0} \
 	CC="%{__cc}" \
 	CFLAGS="%{rpmcflags} -Wall -Wextra" \
-	CPPFLAGS="%{rpmcppflags}"
+	CPPFLAGS="%{rpmcppflags}" \
+	prefix=%{_prefix} \
+	libdir=%{_libdir}
 
 %if %{with apidocs}
 %{__make} docs
