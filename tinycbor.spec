@@ -6,14 +6,16 @@
 Summary:	Tiny Concise Binary Object Representation (CBOR) Library
 Summary(pl.UTF-8):	Mała biblioteka CBOR (Concise Binary Object Representation)
 Name:		tinycbor
-Version:	0.6.0
+Version:	7.0
 Release:	1
 License:	MIT
 Group:		Libraries
 #Source0Download: https://github.com/intel/tinycbor/releases
 Source0:	https://github.com/intel/tinycbor/archive/v%{version}/%{name}-%{version}.tar.gz
-# Source0-md5:	3663e683dbf03f49cb7057ed316a7563
+# Source0-md5:	518d694ff138835dbcdf46562358a752
 URL:		https://github.com/intel/tinycbor
+BuildRequires:	cjson-devel
+BuildRequires:	pkgconfig
 BuildRequires:	rpm-build >= 4.6
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
@@ -64,27 +66,39 @@ Dokumentacja API biblioteki TinyCBOR.
 %setup -q
 
 %build
-LDFLAGS="%{rpmldflags}" \
-%{__make} \
-	%{!?with_static_libs:BUILD_STATIC=0} \
-	CC="%{__cc}" \
-	CFLAGS="%{rpmcflags} -Wall -Wextra" \
-	CPPFLAGS="%{rpmcppflags}" \
-	prefix=%{_prefix} \
-	libdir=%{_libdir}
+%if %{with static_libs}
+install -d build-static
+cd build-static
+%cmake .. \
+	-DBUILD_SHARED_LIBS=OFF \
+	-DBUILD_TOOLS=OFF
+
+%{__make}
+cd ..
+%endif
+
+install -d build
+cd build
+%cmake ..
+
+%{__make}
 
 %if %{with apidocs}
-%{__make} docs
+doxygen ../Doxyfile
 %endif
 
 %install
 rm -rf $RPM_BUILD_ROOT
 
-%{__make} install \
-	%{!?with_static_libs:BUILD_STATIC=0} \
-	DESTDIR=$RPM_BUILD_ROOT \
-	prefix=%{_prefix} \
-	libdir=%{_libdir}
+%if %{with static_libs}
+%{__make} -C build-static install \
+	DESTDIR=$RPM_BUILD_ROOT
+%endif
+
+%{__make} -C build install \
+	DESTDIR=$RPM_BUILD_ROOT
+
+install build/tools/json2cbor/json2cbor $RPM_BUILD_ROOT%{_bindir}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -97,14 +111,15 @@ rm -rf $RPM_BUILD_ROOT
 %doc LICENSE README TODO
 %attr(755,root,root) %{_bindir}/cbordump
 %attr(755,root,root) %{_bindir}/json2cbor
-%attr(755,root,root) %{_libdir}/libtinycbor.so.*.*.*
-%attr(755,root,root) %ghost %{_libdir}/libtinycbor.so.0.6
+%{_libdir}/libtinycbor.so.*.*.*
+%ghost %{_libdir}/libtinycbor.so.0
 
 %files devel
 %defattr(644,root,root,755)
-%attr(755,root,root) %{_libdir}/libtinycbor.so
+%{_libdir}/libtinycbor.so
 %{_includedir}/tinycbor
 %{_pkgconfigdir}/tinycbor.pc
+%{_libdir}/cmake/tinycbor
 
 %if %{with static_libs}
 %files static
